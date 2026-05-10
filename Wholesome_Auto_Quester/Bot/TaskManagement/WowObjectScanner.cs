@@ -21,6 +21,10 @@ namespace Wholesome_Auto_Quester.Bot.TaskManagement
         private bool _isRunning = false;
         private Dictionary<ulong, int> _scanned = new Dictionary<ulong, int>(); // guid, times scanned
         private WAQPath _pathToObject;
+        private List<int> _interactObjects = new List<int>() { 
+            161536, // Slag Pit quary gate door
+            177444 // Maraudon Stone door
+        };
 
         public (WoWObject wowObject, IWAQTask task) ActiveWoWObject { get; private set; } = (null, null);
 
@@ -86,7 +90,7 @@ namespace Wholesome_Auto_Quester.Bot.TaskManagement
         private void HandleSpecialInteractions(WoWObject wowObject)
         {
             // Slag Pit quary gate door
-            if (wowObject.Entry == 161536
+            if (_interactObjects.Contains(wowObject.Entry)
                 && wowObject.GetDistance < 5)
             {
                 Interact.InteractGameObject(wowObject.GetBaseAddress);
@@ -137,7 +141,8 @@ namespace Wholesome_Auto_Quester.Bot.TaskManagement
                         && _scannerRegistry[wowObject.Entry].Any(task => task.IsObjectValidForTask(wowObject))
                         && !wManagerSetting.IsBlackListed(wowObject.Guid)
                         && !wManagerSetting.IsBlackListedZone(wowObject.Position)
-                        && wowObject.Position.DistanceTo(myPos) < 60)
+                        && wowObject.Position.DistanceTo(myPos) < 60
+                        /*&& WTLocation.GetZDifferential(wowObject.Position) < 15*/)
                     .OrderBy(wowObject => wowObject.Position.DistanceTo(myPos))
                     .ToList();
                 listSurroundingPOIs.RemoveAll(wowObject => _scanned.ContainsKey(wowObject.Guid) && _scanned[wowObject.Guid] > 3);

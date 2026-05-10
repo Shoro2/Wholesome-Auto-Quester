@@ -366,7 +366,6 @@
     <Compile Include="States\WAQBlacklistDanger.cs" />
     <Compile Include="States\WAQCheckPathAhead.cs" />
     <Compile Include="States\WAQLoadingScreenLock.cs" />
-    <Compile Include="States\WAQStateClearPath.cs" />
     <Compile Include="States\IWAQState.cs" />
     <Compile Include="States\WAQDefend.cs" />
     <Compile Include="States\WAQExitVehicle.cs" />
@@ -441,6 +440,7 @@
 			PostBuildMacros;
 		</PostBuildEventDependsOn>
     <PostBuildEvent>xcopy /Y/F "$(TargetDir)\Wholesome_Auto_Quester.dll" "$(ProjectDir)\Compiled"
+xcopy /Y/F "$(TargetDir)\Wholesome_Auto_Quester.dll" "D:\WoW\WoW TBC\WRobot\Products"
 echo Writing assembly version in Auto_Version.txt: @(VersionNumber)
 echo @(VersionNumber) &gt; $(ProjectDir)\Compiled\Auto_Version.txt</PostBuildEvent>
   </PropertyGroup>

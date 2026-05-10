@@ -66,21 +66,23 @@ namespace Wholesome_Auto_Quester.Bot.TaskManagement
                     }
                 }
             });
-            //EventsLuaWithArgs.OnEventsLuaStringWithArgs += LuaEventHandler;
+            EventsLuaWithArgs.OnEventsLuaStringWithArgs += LuaEventHandler;
         }
-        /*
+        
         private void LuaEventHandler(string eventid, List<string> args)
         {            
             if (eventid == "PLAYER_LEVEL_UP")
             {
                 ClearGrindTasks();
+                ActiveTask = null;
+                MovementManager.StopMove();
             }            
         }
-        */
+        
         public void Dispose()
         {
             _taskPile.Clear();
-            //EventsLuaWithArgs.OnEventsLuaStringWithArgs -= LuaEventHandler;
+            EventsLuaWithArgs.OnEventsLuaStringWithArgs -= LuaEventHandler;
             _isRunning = false;
         }
 
@@ -113,7 +115,7 @@ namespace Wholesome_Auto_Quester.Bot.TaskManagement
                 || me.IsDead
                 || !me.IsValid
                 || Fight.InFight
-                || _travelManager.TravelInProgress
+                || _travelManager.ShouldTravel
                 || me.HaveBuff("Drink")
                 || me.HaveBuff("Food")
                 || MovementManager.InMovement && WTPathFinder.GetCurrentPathRemainingDistance() > 200 && _tick % 5 != 0)
