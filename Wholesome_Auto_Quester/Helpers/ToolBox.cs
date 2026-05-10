@@ -26,9 +26,13 @@ namespace Wholesome_Auto_Quester.Helpers
     {
         private static Dictionary<int, bool[]> _objectiveCompletionDict = new Dictionary<int, bool[]>();
 
-        // Anti-spam cache: GUID of unit we already cast a quest item on, with timestamp.
+        // Anti-spam cache: GUID of object we already cast a quest item on, with timestamp.
         private static readonly Dictionary<ulong, DateTime> _itemUsedOnGuids = new Dictionary<ulong, DateTime>();
         private static readonly TimeSpan _itemUsedTtl = TimeSpan.FromSeconds(60);
+
+        // Anti-spam cache: QuestId for which we already used a no-target quest item, with timestamp.
+        private static readonly Dictionary<int, DateTime> _itemUsedFromBagForQuests = new Dictionary<int, DateTime>();
+        private static readonly TimeSpan _itemUsedFromBagTtl = TimeSpan.FromSeconds(120);
 
         /// <summary>
         /// Returns nodes at regular distance intervals along a path. Doesn't include starting point.
@@ -480,12 +484,13 @@ namespace Wholesome_Auto_Quester.Helpers
 
         /// <summary>
         /// Casts the spell from a quest's "active" item (StartItem, ItemDrop1..4 or RequiredItem1..6 with HasASpellAttached)
-        /// onto the given unit. Used for "Salve via Hunting"-type quests where the kill alone doesn't credit
-        /// the objective; the server expects the player to use a quest item on the corpse/target.
-        /// Has a per-GUID anti-loop cache so the bot doesn't spam the same item on the same unit each tick.
+        /// onto the given object (creature corpse or game object). Used for "Salve via Hunting"-type and
+        /// "Place explosive on door"-type quests where the kill/interact alone doesn't credit the
+        /// objective; the server expects the player to use a quest item on the corpse/object.
+        /// Has a per-GUID anti-loop cache so the bot doesn't spam the same item on the same target each tick.
         /// Returns true if a /use was actually issued.
         /// </summary>
-        public static bool TryUseQuestItemOnTarget(ModelQuestTemplate quest, WoWUnit target)
+        public static bool TryUseQuestItemOnTarget(ModelQuestTemplate quest, WoWObject target)
         {
             if (quest == null || target == null || target.Guid == 0)
             {
@@ -514,7 +519,40 @@ namespace Wholesome_Auto_Quester.Helpers
             return true;
         }
 
-        private static ModelItemTemplate FindActiveQuestItemInBag(ModelQuestTemplate quest)
+        /// <summary>
+        /// Uses a quest's active item without a target (Tome of Divinity-style channel/self-cast quests).
+        /// Cached per QuestId so the bot doesn't spam /use every tick. Returns true if a /use was issued.
+        /// </summary>
+        public static bool TryUseQuestItemFromBag(ModelQuestTemplate quest)
+        {
+            if (quest == null)
+            {
+                return false;
+            }
+
+            PruneItemUsedFromBagCache();
+            if (_itemUsedFromBagForQuests.ContainsKey(quest.Id))
+            {
+                return false;
+            }
+
+            ModelItemTemplate itemToUse = FindActiveQuestItemInBag(quest);
+            if (itemToUse == null)
+            {
+                return false;
+            }
+
+            Logger.Log($"Using quest item {itemToUse.Name} from bag for {quest.LogTitle}");
+            Lua.RunMacroText("/cleartarget");
+            Thread.Sleep(100);
+            Lua.RunMacroText($"/use {itemToUse.Name}");
+            Thread.Sleep(1500);
+
+            _itemUsedFromBagForQuests[quest.Id] = DateTime.UtcNow;
+            return true;
+        }
+
+        public static ModelItemTemplate FindActiveQuestItemInBag(ModelQuestTemplate quest)
         {
             ModelItemTemplate[] candidates = {
                 quest.StartItemTemplate,
@@ -552,6 +590,19 @@ namespace Wholesome_Auto_Quester.Helpers
             foreach (ulong key in expired)
             {
                 _itemUsedOnGuids.Remove(key);
+            }
+        }
+
+        private static void PruneItemUsedFromBagCache()
+        {
+            DateTime now = DateTime.UtcNow;
+            List<int> expired = _itemUsedFromBagForQuests
+                .Where(kv => now - kv.Value > _itemUsedFromBagTtl)
+                .Select(kv => kv.Key)
+                .ToList();
+            foreach (int key in expired)
+            {
+                _itemUsedFromBagForQuests.Remove(key);
             }
         }
     }
