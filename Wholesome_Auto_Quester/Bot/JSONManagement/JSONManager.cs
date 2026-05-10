@@ -101,6 +101,10 @@ namespace Wholesome_Auto_Quester.Bot.JSONManagement
         {
             lock (_lock)
             {
+                _logFilter = WholesomeAQSettings.CurrentSetting.LogQuestFilters;
+                bool allowNonQuestLootItems = WholesomeAQSettings.CurrentSetting.AllowNonQuestLootItems;
+                bool allowActiveQuestItems = WholesomeAQSettings.CurrentSetting.AllowActiveQuestItems;
+
                 List<JSONModelQuestTemplate> JSONquests = new List<JSONModelQuestTemplate>(_fullJsonModel.QuestTemplates);
                 List<ModelQuestTemplate> result = new List<ModelQuestTemplate>();
 
@@ -183,7 +187,7 @@ namespace Wholesome_Auto_Quester.Bot.JSONManagement
                         continue;
                     }
 
-                    if (quest.KillLootObjectives.Any(klo => klo.ItemTemplate.Class != 12))
+                    if (!allowNonQuestLootItems && quest.KillLootObjectives.Any(klo => klo.ItemTemplate.Class != 12))
                     {
                         if (_logFilter) Logger.LogDebug($"[{quest.Id}] {quest.LogTitle} has been removed (Kill loot objective is not quest item)");
                         continue;
@@ -203,17 +207,18 @@ namespace Wholesome_Auto_Quester.Bot.JSONManagement
                         continue;
                     }
 
-                    if (quest.StartItemTemplate != null && quest.StartItemTemplate.HasASpellAttached
-                        || quest.ItemDrop1Template != null && quest.ItemDrop1Template.HasASpellAttached
-                        || quest.ItemDrop2Template != null && quest.ItemDrop2Template.HasASpellAttached
-                        || quest.ItemDrop3Template != null && quest.ItemDrop3Template.HasASpellAttached
-                        || quest.ItemDrop4Template != null && quest.ItemDrop4Template.HasASpellAttached)
+                    if (!allowActiveQuestItems
+                        && (quest.StartItemTemplate != null && quest.StartItemTemplate.HasASpellAttached
+                            || quest.ItemDrop1Template != null && quest.ItemDrop1Template.HasASpellAttached
+                            || quest.ItemDrop2Template != null && quest.ItemDrop2Template.HasASpellAttached
+                            || quest.ItemDrop3Template != null && quest.ItemDrop3Template.HasASpellAttached
+                            || quest.ItemDrop4Template != null && quest.ItemDrop4Template.HasASpellAttached))
                     {
                         if (_logFilter) Logger.LogDebug($"[{quest.Id}] {quest.LogTitle} has been removed (Active start/prerequisite item)");
                         continue;
                     }
 
-                    if (quest.KillLootObjectives.Any(klo => klo.ItemTemplate.HasASpellAttached))
+                    if (!allowActiveQuestItems && quest.KillLootObjectives.Any(klo => klo.ItemTemplate.HasASpellAttached))
                     {
                         if (_logFilter) Logger.Log($"[{quest.Id}] {quest.LogTitle} has been removed (Active loot item)");
                         continue;
