@@ -308,6 +308,7 @@
     <Compile Include="Bot\TaskManagement\Tasks\WAQTaskGatherGameObject.cs" />
     <Compile Include="Bot\TaskManagement\Tasks\WAQTaskKill.cs" />
     <Compile Include="Bot\TaskManagement\Tasks\WAQTaskKillAndLoot.cs" />
+    <Compile Include="Bot\TaskManagement\Tasks\WAQTaskUseItemOnLiveCreature.cs" />
     <Compile Include="Bot\TaskManagement\Tasks\WAQTaskInteractWithGameObject.cs" />
     <Compile Include="Bot\TaskManagement\Tasks\WAQTaskTurninQuestToGameObject.cs" />
     <Compile Include="Bot\TaskManagement\Tasks\WAQTaskPickupQuestFromGameObject.cs" />
@@ -374,6 +375,7 @@
     <Compile Include="States\WAQStatePriorityLoot.cs" />
     <Compile Include="States\WAQStateInteract.cs" />
     <Compile Include="States\WAQStateKill.cs" />
+    <Compile Include="States\WAQStateUseItemOnLiveCreature.cs" />
     <Compile Include="States\WAQStateLoot.cs" />
     <Compile Include="States\WAQStateTravel.cs" />
     <Compile Include="Helpers\ToolBox.cs" />

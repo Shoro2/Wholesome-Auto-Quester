@@ -344,7 +344,10 @@ namespace Wholesome_Auto_Quester.Bot.QuestManagement
                         }
                     }
 
-                    // Kill
+                    // Kill (replaced with WAQTaskUseItemOnLiveCreature when the quest hands the player
+                    // an item with a spell on accept and AllowActiveQuestItems is on - charm/tame style).
+                    bool useItemOnLiveCreature = WholesomeAQSettings.CurrentSetting.AllowActiveQuestItems
+                        && ToolBox.QuestHasActiveItemWithSpell(QuestTemplate);
                     foreach (KillObjective obje in QuestTemplate.KillObjectives)
                     {
                         if (obje.CreatureTemplate.MaxLevel > ObjectManager.Me.Level + 3)
@@ -359,7 +362,10 @@ namespace Wholesome_Auto_Quester.Bot.QuestManagement
                                 if (QuestTemplate.Id == 11243
                                     && creature.GetSpawnPosition.DistanceTo(new Vector3(746.2075, -4927.192, 16.62478)) > 50) // If Valgarde falls, important northrend starter quest
                                     continue;
-                                AddTaskToDictionary(obje.ObjectiveIndex, new WAQTaskKill(QuestTemplate, obje.CreatureTemplate, creature, _continentManager));
+                                if (useItemOnLiveCreature)
+                                    AddTaskToDictionary(obje.ObjectiveIndex, new WAQTaskUseItemOnLiveCreature(QuestTemplate, obje.CreatureTemplate, creature, _continentManager));
+                                else
+                                    AddTaskToDictionary(obje.ObjectiveIndex, new WAQTaskKill(QuestTemplate, obje.CreatureTemplate, creature, _continentManager));
                             }
                         }
                         else
