@@ -64,18 +64,14 @@ namespace Wholesome_Auto_Quester.Bot
                 _taskManager = new TaskManager(_objectScanner, _questManager, _grindManager, _questTrackerGui, _travelManager, _continentManager);
                 DBCFaction.RecordReputations();
 
-                // Attach onlevelup for spell book:
                 EventsLua.AttachEventLua("PLAYER_LEVEL_UP", m => OnLevelUp());
                 EventsLua.AttachEventLua("PLAYER_ENTERING_WORLD", m => ScreenReloaded());
                 EventsLua.AttachEventLua("UPDATE_FACTION", m => OnReputationChange());
 
-                // Update spell list
                 SpellManager.UpdateSpellBook();
 
-                // Load CC:
                 CustomClass.LoadCustomClass();
 
-                // FSM
                 Fsm.States.Clear();
 
                 _checkPathAheadState = new WAQCheckPathAhead(_objectScanner);
@@ -112,6 +108,7 @@ namespace Wholesome_Auto_Quester.Bot
                     new ToTown(),
                     new WAQStateTravel(_taskManager, _travelManager, _continentManager),
                     _interactState,
+                    new WAQStateUseItemOnLiveCreature(_objectScanner),
                     new WAQStateKill(_objectScanner),
                     new WAQStateMoveToHotspot(_taskManager, _travelManager),
                     new MovementLoop(),
@@ -234,12 +231,6 @@ namespace Wholesome_Auto_Quester.Bot
                         $"=> {_taskManager.ActiveTask.WorldMapArea.Continent} - {_taskManager.ActiveTask.WorldMapArea.areaName}",
                         new Vector3(30, 330, 0), 10, Color.PaleGoldenrod);
                 }
-                /*
-                foreach ((Vector3 a, Vector3 b) line in _clearPathState.LinesToCheck)
-                {
-                    Radar3D.DrawLine(line.a, line.b, Color.Red);
-                }
-                */
 
                 foreach (Vector3 point in _checkPathAheadState.PointsAlongPathSegments)
                 {
