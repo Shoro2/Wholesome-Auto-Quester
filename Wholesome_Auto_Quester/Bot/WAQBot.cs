@@ -163,7 +163,7 @@ namespace Wholesome_Auto_Quester.Bot
                 _taskManager?.Dispose();
                 _travelManager?.Dispose();
 
-                _interactState.Dispose();
+                _interactState?.Dispose();
 
                 if (WholesomeAQSettings.CurrentSetting.DevMode)
                 {
