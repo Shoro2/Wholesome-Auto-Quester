@@ -33,6 +33,11 @@ namespace Wholesome_Auto_Quester
         public bool BlacklistDangerousZones { get; set; }
         public bool AllowStopWatch { get; set; }
         public bool TurboLoot { get; set; }
+        public bool UseRetailQuestBlacklist { get; set; }
+        public bool AllowNonQuestLootItems { get; set; }
+        public bool AllowActiveQuestItems { get; set; }
+        public bool AbandonUnknownLogQuests { get; set; }
+        public bool LogQuestFilters { get; set; }
 
         public WholesomeAQSettings()
         {
@@ -53,6 +58,12 @@ namespace Wholesome_Auto_Quester
             StopAtLevel = 80;
             BlacklistDangerousZones = true;
             TurboLoot = true;
+
+            UseRetailQuestBlacklist = true;
+            AllowNonQuestLootItems = false;
+            AllowActiveQuestItems = false;
+            AbandonUnknownLogQuests = true;
+            LogQuestFilters = false;
 
             AllowStopWatch = false;
         }
