@@ -70,6 +70,13 @@ namespace Wholesome_Auto_Quester.Bot.TaskManagement.Tasks
                 else
                 {
                     Thread.Sleep(1000);
+                    // Tome-of-Divinity-style: if quest hands us an item with a spell on accept,
+                    // try to /use it from the bag right away. The cache in TryUseQuestItemFromBag
+                    // ensures we don't fire repeatedly while the bag is still updating.
+                    if (WholesomeAQSettings.CurrentSetting.AllowActiveQuestItems)
+                    {
+                        ToolBox.TryUseQuestItemFromBag(_questTemplate);
+                    }
                 }
             }
         }

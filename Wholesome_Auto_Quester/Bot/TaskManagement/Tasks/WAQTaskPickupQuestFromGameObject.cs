@@ -62,6 +62,11 @@ namespace Wholesome_Auto_Quester.Bot.TaskManagement.Tasks
                 {
                     PutTaskOnTimeout("Failed pickup gossip", 15 * 60, true);
                 }
+                else if (WholesomeAQSettings.CurrentSetting.AllowActiveQuestItems)
+                {
+                    Thread.Sleep(1000);
+                    ToolBox.TryUseQuestItemFromBag(_questTemplate);
+                }
             }
         }
 
