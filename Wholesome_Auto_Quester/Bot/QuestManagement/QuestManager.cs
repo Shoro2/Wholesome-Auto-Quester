@@ -33,6 +33,38 @@ namespace Wholesome_Auto_Quester.Bot.QuestManagement
         private readonly object _questManagerLock = new object();
         private Timer _itemCheckTimer = new Timer();
 
+        // IDs seeded by the retail blacklist below. Kept here so the
+        // UseRetailQuestBlacklist toggle can scrub them back out.
+        private static readonly int[] _retailBlacklistIds = new int[]
+        {
+            // Horde-only entries (still listed regardless of faction so toggle removes everything we ever set)
+            4740, 3741,
+            // Horde / common entries
+            1202, 863, 6383, 891, 9612, 857, 520, 1177, 8483,
+            629, 1107, 662, 709, 2342, 608, 841,
+            2603, 2581, 2583, 2585,
+            3561, 4293, 4494, 4496, 5021,
+            10103, 10286, 9785, 11039,
+            11564, 11569,
+            11900, 11912, 11918, 11910,
+            12218, 12230, 12234,
+            12447, 12458,
+            13242, 13986, 12791, 12790, 12521, 12853, 13419,
+            12695, 12534, 12533,
+            13135, 12966,
+            12895, 12882, 13426, 13054, 12992, 12806, 13106,
+            13169, 13170, 13171, 13084, 13140,
+            962, 17, 1360, 450, 643,
+            // Alliance entries
+            168, 167, 128, 465, 565, 664, 576, 574, 1190, 734, 1119, 4493, 685,
+            5401, 4103, 1126, 9936, 10412, 10516, 549, 10315, 10678,
+            11508, 11625, 14409, 13347, 12443, 12796, 12462, 12819,
+            12844, 12870, 12863, 12854, 12876,
+            13418, 312, 303, 304, 663, 10590,
+            // Common
+            10881,
+        };
+
         public QuestManager(
             IWowObjectScanner objectScanner,
             QuestsTrackerGUI questTrackerGUI,
@@ -332,7 +364,10 @@ namespace Wholesome_Auto_Quester.Bot.QuestManagement
                         IWAQQuest waqQuest = _questList.Find(q => q.QuestTemplate.Id == logQuest.Key);
                         if (waqQuest == null)
                         {
-                            AbandonQuest(logQuest.Key, "Quest not in our DB list");
+                            if (WholesomeAQSettings.CurrentSetting.AbandonUnknownLogQuests)
+                            {
+                                AbandonQuest(logQuest.Key, "Quest not in our DB list");
+                            }
                         }
                         else
                         {
@@ -490,6 +525,17 @@ namespace Wholesome_Auto_Quester.Bot.QuestManagement
 
         private void InitializeWAQSettings()
         {
+            if (!WholesomeAQSettings.CurrentSetting.UseRetailQuestBlacklist)
+            {
+                // Toggle is off: scrub any retail-bug entries we might have seeded in past runs
+                foreach (int retailId in _retailBlacklistIds)
+                {
+                    RemoveQuestFromBlackList(retailId, "Retail blacklist disabled", false);
+                }
+                EnsureWAQDoNotSellMarkers();
+                return;
+            }
+
             // HORDE
             if (WTPlayer.IsHorde()) AddQuestToBlackList(4740, "Bugged, should only be alliance", false);
             if (WTPlayer.IsHorde()) AddQuestToBlackList(3741, "Hilary's Necklace, should only be alliance", false);
@@ -611,6 +657,11 @@ namespace Wholesome_Auto_Quester.Bot.QuestManagement
             // COMMON
             AddQuestToBlackList(10881, "The Shadow Tombs, problem with boxes", false);
 
+            EnsureWAQDoNotSellMarkers();
+        }
+
+        private void EnsureWAQDoNotSellMarkers()
+        {
             if (!wManagerSetting.CurrentSetting.DoNotSellList.Contains("WAQStart") || !wManagerSetting.CurrentSetting.DoNotSellList.Contains("WAQEnd"))
             {
                 wManagerSetting.CurrentSetting.DoNotSellList.Remove("WAQStart");
