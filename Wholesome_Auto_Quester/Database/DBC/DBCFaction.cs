@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using robotManager.Helpful;
 using wManager.Wow.Helpers;
 
 namespace Wholesome_Auto_Quester.Database.DBC
@@ -39,7 +41,14 @@ namespace Wholesome_Auto_Quester.Database.DBC
                     {
                         continue;
                     }
-                    _myReputations.Add(new Reputation(repProperties[0], repProperties[1], repProperties[2]));
+                    try
+                    {
+                        _myReputations.Add(new Reputation(repProperties[0], repProperties[1], repProperties[2]));
+                    }
+                    catch (Exception e)
+                    {
+                        Logging.Write($"[Wholesome Auto Quester] Skipping unknown/invalid reputation '{repProperties[0]}': {e.Message}");
+                    }
                 }
             }
         }
