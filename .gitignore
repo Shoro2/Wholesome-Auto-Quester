@@ -12,3 +12,6 @@ Dependencies
 /Db_To_Json/obj/Debug
 /Db_To_Json/WoWDB/WoWDb335
 /Db_To_Json/WoWDB/WoWDB335_ACore
+Wholesome_Auto_Quester/Wholesome_Auto_Quester.csproj
+Wholesome_Auto_Quester/Compiled/Wholesome_Auto_Quester.dll
+Wholesome_Auto_Quester/Compiled/Auto_Version.txt
