@@ -11,6 +11,7 @@ namespace Wholesome_Auto_Quester.Bot.TaskManagement.Tasks
 {
     public abstract class WAQBaseTask : IWAQTask
     {
+        private readonly IContinentManager _continentManager;
         private Timer _timeOutTimer = new Timer();
         private int _timeoutMultiplicator = 1;
         private string _timeOutReason = "";
@@ -86,29 +87,45 @@ namespace Wholesome_Auto_Quester.Bot.TaskManagement.Tasks
                     return false;
                 }
 
-                // Stick out of Outlands until level 60
-                if (myLevel < 60
-                    && WorldMapArea.Continent == WAQContinent.Outlands)
+                // When the user disabled cross-continent travel, never offer a task whose
+                // continent doesn't match the player's current continent - regardless of level.
+                // This takes precedence over the level-based "stick to X" rules below.
+                if (!WholesomeAQSettings.CurrentSetting.ContinentTravel
+                    && _continentManager?.MyMapArea != null
+                    && WorldMapArea.Continent != _continentManager.MyMapArea.Continent)
                 {
-                    InvalidityReason = "Sticking to Azeroth";
+                    InvalidityReason = $"ContinentTravel off, sticking to {_continentManager.MyMapArea.Continent}";
                     return false;
                 }
 
-                // Stick to Outlands between 60 and 70
-                if (myLevel < 70
-                    && (ToolBox.IsQuestCompleted(9407) || ToolBox.IsQuestCompleted(10119))
-                    && WorldMapArea.Continent != WAQContinent.Outlands)
+                // Level-based continent gating only applies when the user opted into
+                // ContinentTravel (else the block above already constrained the task pool).
+                if (WholesomeAQSettings.CurrentSetting.ContinentTravel)
                 {
-                    InvalidityReason = "Sticking to Outlands";
-                    return false;
-                }
+                    // Stick out of Outlands until level 60
+                    if (myLevel < 60
+                        && WorldMapArea.Continent == WAQContinent.Outlands)
+                    {
+                        InvalidityReason = "Sticking to Azeroth";
+                        return false;
+                    }
 
-                // Stick to Outlands between 60 and 70
-                if (myLevel >= 70 && myLevel <= 80
-                    && WorldMapArea.Continent != WAQContinent.Northrend)
-                {
-                    InvalidityReason = "Sticking to Northrend";
-                    return false;
+                    // Stick to Outlands between 60 and 70
+                    if (myLevel < 70
+                        && (ToolBox.IsQuestCompleted(9407) || ToolBox.IsQuestCompleted(10119))
+                        && WorldMapArea.Continent != WAQContinent.Outlands)
+                    {
+                        InvalidityReason = "Sticking to Outlands";
+                        return false;
+                    }
+
+                    // Stick to Northrend between 70 and 80
+                    if (myLevel >= 70 && myLevel <= 80
+                        && WorldMapArea.Continent != WAQContinent.Northrend)
+                    {
+                        InvalidityReason = "Sticking to Northrend";
+                        return false;
+                    }
                 }
 
                 InvalidityReason = "";
@@ -121,6 +138,7 @@ namespace Wholesome_Auto_Quester.Bot.TaskManagement.Tasks
             Location = location;
             TaskName = taskName;
             WorldMapArea = continentManager.GetWorldMapAreaFromPoint(location, continent);
+            _continentManager = continentManager;
         }
 
         protected abstract bool IsRecordedAsUnreachable { get; }

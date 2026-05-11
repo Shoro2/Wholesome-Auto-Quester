@@ -44,6 +44,10 @@ namespace Wholesome_Auto_Quester.Bot.TaskManagement.Tasks
         public override void PostInteraction(WoWObject wowObject)
         {
             Thread.Sleep(1000);
+            if (WholesomeAQSettings.CurrentSetting.AllowActiveQuestItems)
+            {
+                ToolBox.TryUseQuestItemOnTarget(_questTemplate, wowObject);
+            }
         }
 
         public override string TrackerColor => "Aqua";

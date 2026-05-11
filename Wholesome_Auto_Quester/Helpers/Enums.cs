@@ -37,6 +37,7 @@
         None,
         Kill,
         KillAndLoot,
-        Interact
+        Interact,
+        UseItemOnLiveCreature
     }
 }

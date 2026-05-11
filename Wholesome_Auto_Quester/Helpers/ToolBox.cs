@@ -26,17 +26,14 @@ namespace Wholesome_Auto_Quester.Helpers
     {
         private static Dictionary<int, bool[]> _objectiveCompletionDict = new Dictionary<int, bool[]>();
 
-        // Anti-spam cache: GUID of unit we already cast a quest item on, with timestamp.
+        // Anti-spam cache: GUID of object we already cast a quest item on, with timestamp.
         private static readonly Dictionary<ulong, DateTime> _itemUsedOnGuids = new Dictionary<ulong, DateTime>();
         private static readonly TimeSpan _itemUsedTtl = TimeSpan.FromSeconds(60);
 
-        /// <summary>
-        /// Returns nodes at regular distance intervals along a path. Doesn't include starting point.
-        /// </summary>
-        /// <param name="path"></param>
-        /// <param name="distanceBetweenPoints"></param>
-        /// <param name="maxDistance"></param>
-        /// <returns>Nodes at regular distance intervals along a path</returns>
+        // Anti-spam cache: QuestId for which we already used a no-target quest item, with timestamp.
+        private static readonly Dictionary<int, DateTime> _itemUsedFromBagForQuests = new Dictionary<int, DateTime>();
+        private static readonly TimeSpan _itemUsedFromBagTtl = TimeSpan.FromSeconds(120);
+
         public static List<Vector3> GetPointsAlongPath(
             List<Vector3> path,
             float distanceBetweenPoints,
@@ -153,7 +150,6 @@ namespace Wholesome_Auto_Quester.Helpers
             bool poiIsUnit = poiUnit != null;
             int maxCount = poiIsUnit ? 2 : 3;
 
-            // Detect high concentration of enemies
             if (WholesomeAQSettings.CurrentSetting.BlacklistDangerousZones)
             {
                 if (hostileUnits.Where(u => u.Key.Level >= me.Level && poiPosition.DistanceTo(u.Key.Position) < 18).Count() >= maxCount
@@ -372,7 +368,6 @@ namespace Wholesome_Auto_Quester.Helpers
                 return completionArray[objectiveId - 1];
             }
 
-            // It's possible that the completion dic hasn't been set yet, so we check the quest individually
             Logger.LogDebug($"Individual update");
             Dictionary<int, bool[]> tempDic = GetObjectiveCompletionDict(new int[] { questId });
             if (tempDic.TryGetValue(questId, out bool[] tempCompArray))
@@ -418,7 +413,6 @@ namespace Wholesome_Auto_Quester.Helpers
                 _ => Classes.Unknown
             };
 
-        // Calculate real walking distance, returns 0 is path is broken
         public static WAQPath GetWAQPath(Vector3 from, Vector3 to)
         {
             float distance = 0f;
@@ -433,31 +427,31 @@ namespace Wholesome_Auto_Quester.Helpers
 
         public static Dictionary<int, int> QuestModifiedLevel = new Dictionary<int, int>()
         {
-            { 354, 3 }, // Roaming mobs, hard to find in a hostile zone
-            { 843, 3 }, // Bael'Dun excavation, too many mobs
-            { 6548, 3 }, // Avenge my village, too many mobs
-            { 6629, 3 }, // Avenge my village follow up, too many mobs
-            { 216, 2 }, // Between a rock and a Thistlefur, too many mobs
-            { 541, 4 }, // Battle of Hillsbrad, too many mobs
-            { 5501, 3 }, // Kodo bones, red enemies
-            { 8885, 3 }, // Ring of Mmmmmmrgll, too many freaking murlocs
-            { 1389, 3 }, // Draenethyst crystals, too many mobs
-            { 582, 3 }, // Headhunting, too many mobs
-            { 1177, 3 }, // Hungry!, too many murlocs
-            { 1054, 3 }, // Culling the threat, too many murlocs
-            { 115, 3 }, // Culling the threat, too many murlocs
-            { 180, 3 }, // Lieutenant Fangore, too many mobs
-            { 323, 3 }, // Proving your worth, too many mobs
-            { 464, 3 }, // War banners, too many mobs
-            { 203, 3 }, // The second rebellion, too many mobs
-            { 505, 3 }, // Syndicate assassins, too many mobs
-            { 1439, 5 }, // Search for Tyranis, too many mobs
-            { 213, 5 }, // Hostile takeover, too many mobs
-            { 1398, 4 }, // Driftwood, too many mobs
-            { 2870, 4 }, // Against Lord Shalzaru, too many mobs
-            { 12043, 3 }, // Nozzlerust defense, too many mobs
-            { 12044, 3 }, // Stocking up, too many mobs
-            { 12120, 3 }, // DrakAguul's Mallet, too many mobs
+            { 354, 3 },
+            { 843, 3 },
+            { 6548, 3 },
+            { 6629, 3 },
+            { 216, 2 },
+            { 541, 4 },
+            { 5501, 3 },
+            { 8885, 3 },
+            { 1389, 3 },
+            { 582, 3 },
+            { 1177, 3 },
+            { 1054, 3 },
+            { 115, 3 },
+            { 180, 3 },
+            { 323, 3 },
+            { 464, 3 },
+            { 203, 3 },
+            { 505, 3 },
+            { 1439, 5 },
+            { 213, 5 },
+            { 1398, 4 },
+            { 2870, 4 },
+            { 12043, 3 },
+            { 12044, 3 },
+            { 12120, 3 },
         };
 
         public static List<WoWUnit> GetListObjManagerHostiles()
@@ -480,12 +474,13 @@ namespace Wholesome_Auto_Quester.Helpers
 
         /// <summary>
         /// Casts the spell from a quest's "active" item (StartItem, ItemDrop1..4 or RequiredItem1..6 with HasASpellAttached)
-        /// onto the given unit. Used for "Salve via Hunting"-type quests where the kill alone doesn't credit
-        /// the objective; the server expects the player to use a quest item on the corpse/target.
-        /// Has a per-GUID anti-loop cache so the bot doesn't spam the same item on the same unit each tick.
+        /// onto the given object (creature corpse or game object). Used for "Salve via Hunting"-type and
+        /// "Place explosive on door"-type quests where the kill/interact alone doesn't credit the
+        /// objective; the server expects the player to use a quest item on the corpse/object.
+        /// Has a per-GUID anti-loop cache so the bot doesn't spam the same item on the same target each tick.
         /// Returns true if a /use was actually issued.
         /// </summary>
-        public static bool TryUseQuestItemOnTarget(ModelQuestTemplate quest, WoWUnit target)
+        public static bool TryUseQuestItemOnTarget(ModelQuestTemplate quest, WoWObject target)
         {
             if (quest == null || target == null || target.Guid == 0)
             {
@@ -514,7 +509,40 @@ namespace Wholesome_Auto_Quester.Helpers
             return true;
         }
 
-        private static ModelItemTemplate FindActiveQuestItemInBag(ModelQuestTemplate quest)
+        /// <summary>
+        /// Uses a quest's active item without a target (Tome of Divinity-style channel/self-cast quests).
+        /// Cached per QuestId so the bot doesn't spam /use every tick. Returns true if a /use was issued.
+        /// </summary>
+        public static bool TryUseQuestItemFromBag(ModelQuestTemplate quest)
+        {
+            if (quest == null)
+            {
+                return false;
+            }
+
+            PruneItemUsedFromBagCache();
+            if (_itemUsedFromBagForQuests.ContainsKey(quest.Id))
+            {
+                return false;
+            }
+
+            ModelItemTemplate itemToUse = FindActiveQuestItemInBag(quest);
+            if (itemToUse == null)
+            {
+                return false;
+            }
+
+            Logger.Log($"Using quest item {itemToUse.Name} from bag for {quest.LogTitle}");
+            Lua.RunMacroText("/cleartarget");
+            Thread.Sleep(100);
+            Lua.RunMacroText($"/use {itemToUse.Name}");
+            Thread.Sleep(1500);
+
+            _itemUsedFromBagForQuests[quest.Id] = DateTime.UtcNow;
+            return true;
+        }
+
+        public static ModelItemTemplate FindActiveQuestItemInBag(ModelQuestTemplate quest)
         {
             ModelItemTemplate[] candidates = {
                 quest.StartItemTemplate,
@@ -542,6 +570,27 @@ namespace Wholesome_Auto_Quester.Helpers
             return null;
         }
 
+        /// <summary>
+        /// Returns true if any of the quest's item slots (StartItem, ItemDrop1..4, RequiredItem1..6)
+        /// has a spell attached. Used by task-generation to decide whether to schedule the
+        /// charm/tame variant of WAQTaskKill (UseItemOnLiveCreature) instead of the plain Kill task.
+        /// </summary>
+        public static bool QuestHasActiveItemWithSpell(ModelQuestTemplate quest)
+        {
+            if (quest == null) return false;
+            return (quest.StartItemTemplate != null && quest.StartItemTemplate.HasASpellAttached)
+                || (quest.ItemDrop1Template != null && quest.ItemDrop1Template.HasASpellAttached)
+                || (quest.ItemDrop2Template != null && quest.ItemDrop2Template.HasASpellAttached)
+                || (quest.ItemDrop3Template != null && quest.ItemDrop3Template.HasASpellAttached)
+                || (quest.ItemDrop4Template != null && quest.ItemDrop4Template.HasASpellAttached)
+                || (quest.RequiredItem1Template != null && quest.RequiredItem1Template.HasASpellAttached)
+                || (quest.RequiredItem2Template != null && quest.RequiredItem2Template.HasASpellAttached)
+                || (quest.RequiredItem3Template != null && quest.RequiredItem3Template.HasASpellAttached)
+                || (quest.RequiredItem4Template != null && quest.RequiredItem4Template.HasASpellAttached)
+                || (quest.RequiredItem5Template != null && quest.RequiredItem5Template.HasASpellAttached)
+                || (quest.RequiredItem6Template != null && quest.RequiredItem6Template.HasASpellAttached);
+        }
+
         private static void PruneItemUsedCache()
         {
             DateTime now = DateTime.UtcNow;
@@ -552,6 +601,19 @@ namespace Wholesome_Auto_Quester.Helpers
             foreach (ulong key in expired)
             {
                 _itemUsedOnGuids.Remove(key);
+            }
+        }
+
+        private static void PruneItemUsedFromBagCache()
+        {
+            DateTime now = DateTime.UtcNow;
+            List<int> expired = _itemUsedFromBagForQuests
+                .Where(kv => now - kv.Value > _itemUsedFromBagTtl)
+                .Select(kv => kv.Key)
+                .ToList();
+            foreach (int key in expired)
+            {
+                _itemUsedFromBagForQuests.Remove(key);
             }
         }
     }

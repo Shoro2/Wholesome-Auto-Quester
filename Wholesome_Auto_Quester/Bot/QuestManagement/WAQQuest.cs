@@ -81,8 +81,10 @@ namespace Wholesome_Auto_Quester.Bot.QuestManagement
                 return;
             }
 
-            if (ObjectManager.Me.Level < 58
-                && !WholesomeAQSettings.CurrentSetting.ContinentTravel
+            // When ContinentTravel is disabled, skip any task whose continent doesn't match
+            // the player's current continent, regardless of player level. The previous
+            // "Level < 58" qualifier prevented the setting from taking effect after Outland.
+            if (!WholesomeAQSettings.CurrentSetting.ContinentTravel
                 && task.WorldMapArea.Continent != _continentManager.MyMapArea.Continent)
             {
                 return;
@@ -344,7 +346,10 @@ namespace Wholesome_Auto_Quester.Bot.QuestManagement
                         }
                     }
 
-                    // Kill
+                    // Kill (replaced with WAQTaskUseItemOnLiveCreature when the quest hands the player
+                    // an item with a spell on accept and AllowActiveQuestItems is on - charm/tame style).
+                    bool useItemOnLiveCreature = WholesomeAQSettings.CurrentSetting.AllowActiveQuestItems
+                        && ToolBox.QuestHasActiveItemWithSpell(QuestTemplate);
                     foreach (KillObjective obje in QuestTemplate.KillObjectives)
                     {
                         if (obje.CreatureTemplate.MaxLevel > ObjectManager.Me.Level + 3)
@@ -359,7 +364,10 @@ namespace Wholesome_Auto_Quester.Bot.QuestManagement
                                 if (QuestTemplate.Id == 11243
                                     && creature.GetSpawnPosition.DistanceTo(new Vector3(746.2075, -4927.192, 16.62478)) > 50) // If Valgarde falls, important northrend starter quest
                                     continue;
-                                AddTaskToDictionary(obje.ObjectiveIndex, new WAQTaskKill(QuestTemplate, obje.CreatureTemplate, creature, _continentManager));
+                                if (useItemOnLiveCreature)
+                                    AddTaskToDictionary(obje.ObjectiveIndex, new WAQTaskUseItemOnLiveCreature(QuestTemplate, obje.CreatureTemplate, creature, _continentManager));
+                                else
+                                    AddTaskToDictionary(obje.ObjectiveIndex, new WAQTaskKill(QuestTemplate, obje.CreatureTemplate, creature, _continentManager));
                             }
                         }
                         else
