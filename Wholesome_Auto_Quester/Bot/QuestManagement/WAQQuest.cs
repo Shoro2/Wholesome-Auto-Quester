@@ -81,8 +81,10 @@ namespace Wholesome_Auto_Quester.Bot.QuestManagement
                 return;
             }
 
-            if (ObjectManager.Me.Level < 58
-                && !WholesomeAQSettings.CurrentSetting.ContinentTravel
+            // When ContinentTravel is disabled, skip any task whose continent doesn't match
+            // the player's current continent, regardless of player level. The previous
+            // "Level < 58" qualifier prevented the setting from taking effect after Outland.
+            if (!WholesomeAQSettings.CurrentSetting.ContinentTravel
                 && task.WorldMapArea.Continent != _continentManager.MyMapArea.Continent)
             {
                 return;
